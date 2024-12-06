@@ -97,7 +97,7 @@ curl -sL https://rpm.nodesource.com/setup_16.x | bash -
 yum install -y nodejs
 
 # Clone the repository
-git clone https://github.com/your-repo/videomaker.git
+git clone https://github.com/nimysan/cline-dsql-demo.git
 cd videomaker
 
 # Install dependencies
