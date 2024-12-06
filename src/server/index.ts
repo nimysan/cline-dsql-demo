@@ -5,7 +5,16 @@ import { AppDataSource } from "./database/config";
 import { Order } from "./entities/Order";
 import crypto from "crypto";
 
+interface QueryMetric {
+    query: string;
+    duration: number;
+    timestamp: Date;
+}
+
 const app = express();
+// Store last 1000 metrics in memory
+const queryMetrics: QueryMetric[] = [];
+const MAX_METRICS = 1000;
 
 app.use(cors());
 app.use(express.json());
@@ -19,11 +28,28 @@ AppDataSource.initialize()
         console.error("Error during Data Source initialization:", error);
     });
 
+// Function to save metric to memory
+function saveMetric(query: string, duration: number) {
+    const metric: QueryMetric = {
+        query,
+        duration,
+        timestamp: new Date()
+    };
+    
+    queryMetrics.unshift(metric); // Add to beginning of array
+    if (queryMetrics.length > MAX_METRICS) {
+        queryMetrics.pop(); // Remove oldest metric if we exceed max size
+    }
+}
+
 // Get all orders
 app.get("/api/orders", async (req, res) => {
     try {
         const orderRepository = AppDataSource.getRepository(Order);
+        const startTime = Date.now();
         const orders = await orderRepository.find();
+        const duration = Date.now() - startTime;
+        saveMetric("GET /api/orders", duration);
         res.json(orders);
     } catch (error) {
         res.status(500).json({ message: "Error fetching orders" });
@@ -38,8 +64,11 @@ app.post("/api/orders", async (req, res) => {
             ...req.body,
             id: crypto.randomUUID()
         };
+        const startTime = Date.now();
         const order = orderRepository.create(orderData);
         const result = await orderRepository.save(order);
+        const duration = Date.now() - startTime;
+        saveMetric("POST /api/orders", duration);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: "Error creating order" });
@@ -60,12 +89,15 @@ app.post("/api/orders/generate-sample", async (req, res) => {
             status: ['Pending', 'Processing', 'Completed'][Math.floor(Math.random() * 3)] as "Completed" | "Pending" | "Processing"
         }));
 
+        const startTime = Date.now();
         // Save orders in chunks to avoid memory issues
         const chunkSize = 100;
         for (let i = 0; i < sampleOrders.length; i += chunkSize) {
             const chunk = sampleOrders.slice(i, i + chunkSize);
             await orderRepository.save(chunk);
         }
+        const duration = Date.now() - startTime;
+        saveMetric(`POST /api/orders/generate-sample (${count} orders)`, duration);
         
         res.json({ message: `Successfully created ${count} sample orders` });
     } catch (error) {
@@ -78,6 +110,7 @@ app.post("/api/orders/generate-sample", async (req, res) => {
 app.patch("/api/orders/:id", async (req, res) => {
     try {
         const orderRepository = AppDataSource.getRepository(Order);
+        const startTime = Date.now();
         const order = await orderRepository.findOne({ 
             where: { id: req.params.id }
         });
@@ -88,6 +121,8 @@ app.patch("/api/orders/:id", async (req, res) => {
 
         orderRepository.merge(order, req.body);
         const result = await orderRepository.save(order);
+        const duration = Date.now() - startTime;
+        saveMetric(`PATCH /api/orders/${req.params.id}`, duration);
         res.json(result);
     } catch (error) {
         res.status(500).json({ message: "Error updating order" });
@@ -98,6 +133,7 @@ app.patch("/api/orders/:id", async (req, res) => {
 app.delete("/api/orders/:id", async (req, res) => {
     try {
         const orderRepository = AppDataSource.getRepository(Order);
+        const startTime = Date.now();
         const order = await orderRepository.findOne({ 
             where: { id: req.params.id }
         });
@@ -107,9 +143,28 @@ app.delete("/api/orders/:id", async (req, res) => {
         }
 
         await orderRepository.remove(order);
+        const duration = Date.now() - startTime;
+        saveMetric(`DELETE /api/orders/${req.params.id}`, duration);
         res.json({ message: "Order deleted successfully" });
     } catch (error) {
         res.status(500).json({ message: "Error deleting order" });
+    }
+});
+
+// Get metrics from memory
+app.get("/api/metrics", (req, res) => {
+    try {
+        // Calculate some statistics
+        const stats = {
+            metrics: queryMetrics,
+            totalQueries: queryMetrics.length,
+            averageDuration: queryMetrics.reduce((acc, curr) => acc + curr.duration, 0) / queryMetrics.length || 0,
+            maxDuration: Math.max(...queryMetrics.map(m => m.duration)),
+            minDuration: Math.min(...queryMetrics.map(m => m.duration))
+        };
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching metrics" });
     }
 });
 
