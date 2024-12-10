@@ -52,14 +52,17 @@ export class LoadTestStack extends cdk.Stack {
       'Allow Locust master-worker communication'
     );
 
+    // Use Ubuntu 22.04 LTS AMI
+    const ubuntuAmi = new ec2.GenericLinuxImage({
+      'us-east-1': 'ami-0fc5d935ebf8bc3bc',  // Ubuntu 22.04 LTS in us-east-1
+    });
+
     // Create Auto Scaling Group for Locust master
     const masterASG = new autoscaling.AutoScalingGroup(this, 'LoadTestMasterASG', {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MEDIUM),
-      machineImage: new ec2.AmazonLinuxImage({
-        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
-      }),
+      machineImage: ubuntuAmi,
       minCapacity: 1,
       maxCapacity: 1,
       desiredCapacity: 1,
@@ -74,9 +77,7 @@ export class LoadTestStack extends cdk.Stack {
       vpc,
       vpcSubnets: { subnetType: ec2.SubnetType.PUBLIC },
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MEDIUM),
-      machineImage: new ec2.AmazonLinuxImage({
-        generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
-      }),
+      machineImage: ubuntuAmi,
       minCapacity: 1,
       maxCapacity: 5,
       desiredCapacity: 2,
@@ -89,12 +90,16 @@ export class LoadTestStack extends cdk.Stack {
     // Add user data script for master node
     const masterUserDataScript = `
 #!/bin/bash
-yum update -y
-yum install -y python3-pip git python3-venv
+# Wait for cloud-init to complete
+cloud-init status --wait
+
+# Update package list and install required packages
+apt-get update
+apt-get install -y python3-pip git python3-venv
 
 # Install Node.js for TypeScript support
-curl -sL https://rpm.nodesource.com/setup_16.x | bash -
-yum install -y nodejs
+curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+apt-get install -y nodejs
 
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
@@ -109,7 +114,7 @@ pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Copy the Locust file to the appropriate location
 mkdir -p aws-load-test/locust
-cp aws-load-test/locust/locustfile.py /home/ec2-user/locustfile.py
+cp aws-load-test/locust/locustfile.py /home/ubuntu/locustfile.py
 
 # Start Locust master (using the virtual environment)
 source venv/bin/activate && locust --master --host=http://localhost:8089
@@ -118,12 +123,16 @@ source venv/bin/activate && locust --master --host=http://localhost:8089
     // Add user data script for worker nodes
     const workerUserDataScript = `
 #!/bin/bash
-yum update -y
-yum install -y python3-pip git python3-venv
+# Wait for cloud-init to complete
+cloud-init status --wait
+
+# Update package list and install required packages
+apt-get update
+apt-get install -y python3-pip git python3-venv
 
 # Install Node.js for TypeScript support
-curl -sL https://rpm.nodesource.com/setup_16.x | bash -
-yum install -y nodejs
+curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+apt-get install -y nodejs
 
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
@@ -138,7 +147,7 @@ pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Copy the Locust file to the appropriate location
 mkdir -p aws-load-test/locust
-cp aws-load-test/locust/locustfile.py /home/ec2-user/locustfile.py
+cp aws-load-test/locust/locustfile.py /home/ubuntu/locustfile.py
 
 # Get master node IP (using AWS CLI to get the first instance from master ASG)
 MASTER_IP=$(aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=LoadTestMasterASG" --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
