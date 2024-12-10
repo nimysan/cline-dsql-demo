@@ -31,6 +31,13 @@ export class LoadTestStack extends cdk.Stack {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
     });
 
+    // Add EC2 describe instances permission
+    ec2Role.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: ['ec2:DescribeInstances'],
+      resources: ['*']
+    }));
+
     // Create security group for EC2 instances
     const securityGroup = new ec2.SecurityGroup(this, 'LoadTestSG', {
       vpc,
@@ -104,7 +111,7 @@ export class LoadTestStack extends cdk.Stack {
 
 # Update package list and install required packages
 apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip git python3-locust
+DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip git python3-locust awscli
 pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Install Node.js for TypeScript support
@@ -119,6 +126,11 @@ cd cline-dsql-demo
 mkdir -p aws-load-test/locust
 cp aws-load-test/locust/locustfile.py /home/ubuntu/locustfile.py
 
+# Get public IP and store it
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+PUBLIC_IP=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+echo $PUBLIC_IP > /home/ubuntu/public_ip
+
 # Start Locust master (using the virtual environment)
 cd /home/ubuntu/ && locust --master --host=http://localhost:8089
 `;
@@ -131,7 +143,7 @@ cd /home/ubuntu/ && locust --master --host=http://localhost:8089
 
 # Update package list and install required packages
 apt-get update
-DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip git python3-locust
+DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip git python3-locust awscli
 pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Install Node.js for TypeScript support
@@ -147,7 +159,7 @@ mkdir -p aws-load-test/locust
 cp aws-load-test/locust/locustfile.py /home/ubuntu/locustfile.py
 
 # Get master node IP (using AWS CLI to get the first instance from master ASG)
-MASTER_IP=$(aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=LoadTestMasterASG" --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
+MASTER_IP=$(aws ec2 describe-instances --region us-east-1 --filters "Name=tag:Name,Values=PgLoadTestStack/LoadTestMasterASG" "Name=instance-state-name,Values=running" --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
 
 # Start Locust worker (using the virtual environment)
 cd /home/ubuntu/ && locust --worker --master-host=$MASTER_IP
@@ -160,6 +172,12 @@ cd /home/ubuntu/ && locust --worker --master-host=$MASTER_IP
     new cdk.CfnOutput(this, 'LocustMasterDNS', {
       value: masterASG.autoScalingGroupName,
       description: 'Auto Scaling Group name for Locust master node',
+    });
+
+    // Output the command to get the Locust web interface URL
+    new cdk.CfnOutput(this, 'LocustWebInterface', {
+      value: `aws ec2 describe-instances --region ${this.region} --filters "Name=tag:aws:autoscaling:groupName,Values=${masterASG.autoScalingGroupName}" --query "Reservations[0].Instances[0].PublicIpAddress" --output text | xargs -I {} echo "http://{}:8089"`,
+      description: 'Command to get Locust web interface URL'
     });
   }
 }

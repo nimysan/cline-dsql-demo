@@ -15,7 +15,7 @@ def generate_token(cluster_endpoint, region):
     """Generate admin auth token for database connection"""
     try:
         client = boto3.client("dsql", region_name=region)
-        token = client.generate_connect_admin_auth_token(cluster_endpoint, region)
+        token = client.generate_db_connect_admin_auth_token(cluster_endpoint, region)
         return token
     except Exception as e:
         logger.error(f"Error generating token: {e}")
