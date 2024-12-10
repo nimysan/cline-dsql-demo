@@ -90,7 +90,7 @@ export class LoadTestStack extends cdk.Stack {
     const masterUserDataScript = `
 #!/bin/bash
 yum update -y
-yum install -y python3-pip git
+yum install -y python3-pip git python3-venv
 
 # Install Node.js for TypeScript support
 curl -sL https://rpm.nodesource.com/setup_16.x | bash -
@@ -98,35 +98,43 @@ yum install -y nodejs
 
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
-cd videomaker
+cd cline-dsql-demo
 
-# Install dependencies
-pip3 install locust psycopg2-binary
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies in virtual environment
+pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Copy the Locust file to the appropriate location
 mkdir -p aws-load-test/locust
 cp aws-load-test/locust/locustfile.py /home/ec2-user/locustfile.py
 
-# Start Locust master
-locust --master --host=http://localhost:8089
+# Start Locust master (using the virtual environment)
+source venv/bin/activate && locust --master --host=http://localhost:8089
 `;
 
     // Add user data script for worker nodes
     const workerUserDataScript = `
 #!/bin/bash
 yum update -y
-yum install -y python3-pip git
+yum install -y python3-pip git python3-venv
 
 # Install Node.js for TypeScript support
 curl -sL https://rpm.nodesource.com/setup_16.x | bash -
 yum install -y nodejs
 
 # Clone the repository
-git clone https://github.com/your-repo/videomaker.git
-cd videomaker
+git clone https://github.com/nimysan/cline-dsql-demo.git
+cd cline-dsql-demo
 
-# Install dependencies
-pip3 install locust psycopg2-binary
+# Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies in virtual environment
+pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Copy the Locust file to the appropriate location
 mkdir -p aws-load-test/locust
@@ -135,8 +143,8 @@ cp aws-load-test/locust/locustfile.py /home/ec2-user/locustfile.py
 # Get master node IP (using AWS CLI to get the first instance from master ASG)
 MASTER_IP=$(aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=LoadTestMasterASG" --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
 
-# Start Locust worker
-locust --worker --master-host=$MASTER_IP
+# Start Locust worker (using the virtual environment)
+source venv/bin/activate && locust --worker --master-host=$MASTER_IP
 `;
 
     masterASG.addUserData(masterUserDataScript);
