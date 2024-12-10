@@ -104,7 +104,7 @@ export class LoadTestStack extends cdk.Stack {
 
 # Update package list and install required packages
 apt-get update
-apt-get install -y python3-pip git python3-venv
+apt-get install -y python3-pip git python3.10-venv
 
 # Install Node.js for TypeScript support
 curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
@@ -137,7 +137,7 @@ cd /home/ubuntu/ && locust --master --host=http://localhost:8089
 
 # Update package list and install required packages
 apt-get update
-apt-get install -y python3-pip git python3-venv
+apt-get install -y python3-pip git python3.10-venv
 
 # Install Node.js for TypeScript support
 curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
