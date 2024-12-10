@@ -45,6 +45,15 @@ export class LoadTestStack extends cdk.Stack {
       'Allow Locust web interface'
     );
 
+      // Allow inbound traffic for Locust
+      securityGroup.addIngressRule(
+        ec2.Peer.anyIpv4(),
+        ec2.Port.tcp(22),
+        'Allow Locust web interface'
+      );
+  
+    
+
     // Allow communication between Locust master and workers
     securityGroup.addIngressRule(
       securityGroup,
@@ -91,7 +100,7 @@ export class LoadTestStack extends cdk.Stack {
     const masterUserDataScript = `
 #!/bin/bash
 # Wait for cloud-init to complete
-cloud-init status --wait
+# cloud-init status --wait
 
 # Update package list and install required packages
 apt-get update
@@ -117,14 +126,14 @@ mkdir -p aws-load-test/locust
 cp aws-load-test/locust/locustfile.py /home/ubuntu/locustfile.py
 
 # Start Locust master (using the virtual environment)
-source venv/bin/activate && locust --master --host=http://localhost:8089
+cd /home/ubuntu/ && locust --master --host=http://localhost:8089
 `;
 
     // Add user data script for worker nodes
     const workerUserDataScript = `
 #!/bin/bash
 # Wait for cloud-init to complete
-cloud-init status --wait
+# cloud-init status --wait
 
 # Update package list and install required packages
 apt-get update
@@ -153,7 +162,7 @@ cp aws-load-test/locust/locustfile.py /home/ubuntu/locustfile.py
 MASTER_IP=$(aws ec2 describe-instances --filters "Name=tag:aws:autoscaling:groupName,Values=LoadTestMasterASG" --query "Reservations[0].Instances[0].PrivateIpAddress" --output text)
 
 # Start Locust worker (using the virtual environment)
-source venv/bin/activate && locust --worker --master-host=$MASTER_IP
+cd /home/ubuntu/ && locust --worker --master-host=$MASTER_IP
 `;
 
     masterASG.addUserData(masterUserDataScript);
