@@ -104,7 +104,7 @@ export class LoadTestStack extends cdk.Stack {
 
 # Update package list and install required packages
 apt-get update
-apt-get install -y python3-pip git python3.10-venv
+apt-get install -y python3-pip git python3-locust
 
 # Install Node.js for TypeScript support
 curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
@@ -113,10 +113,6 @@ apt-get install -y nodejs
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
 cd cline-dsql-demo
-
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
 
 # Install dependencies in virtual environment
 pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
@@ -137,7 +133,7 @@ cd /home/ubuntu/ && locust --master --host=http://localhost:8089
 
 # Update package list and install required packages
 apt-get update
-apt-get install -y python3-pip git python3.10-venv
+apt-get install -y python3-pip git python3-locust
 
 # Install Node.js for TypeScript support
 curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
@@ -146,10 +142,6 @@ apt-get install -y nodejs
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
 cd cline-dsql-demo
-
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate
 
 # Install dependencies in virtual environment
 pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
