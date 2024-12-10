@@ -104,7 +104,7 @@ export class LoadTestStack extends cdk.Stack {
 
 # Update package list and install required packages
 apt-get update
-apt-get install -y python3-pip git python3-locust
+apt-get install -y python3-pip git python3-locust && pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Install Node.js for TypeScript support
 curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
@@ -113,9 +113,6 @@ apt-get install -y nodejs
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
 cd cline-dsql-demo
-
-# Install dependencies in virtual environment
-pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Copy the Locust file to the appropriate location
 mkdir -p aws-load-test/locust
@@ -133,7 +130,8 @@ cd /home/ubuntu/ && locust --master --host=http://localhost:8089
 
 # Update package list and install required packages
 apt-get update
-apt-get install -y python3-pip git python3-locust
+apt-get install -y python3-pip git python3-locust && pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
+
 
 # Install Node.js for TypeScript support
 curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
@@ -142,9 +140,6 @@ apt-get install -y nodejs
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
 cd cline-dsql-demo
-
-# Install dependencies in virtual environment
-pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Copy the Locust file to the appropriate location
 mkdir -p aws-load-test/locust
