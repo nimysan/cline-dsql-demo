@@ -109,7 +109,7 @@ pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Install Node.js for TypeScript support
 curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-apt-get install -y nodejs
+DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
@@ -136,7 +136,7 @@ pip3 install locust==2.24.0 psycopg2-binary==2.9.9 boto3==1.35.76
 
 # Install Node.js for TypeScript support
 curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
-apt-get install -y nodejs
+DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 
 # Clone the repository
 git clone https://github.com/nimysan/cline-dsql-demo.git
